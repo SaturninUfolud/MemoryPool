@@ -10,16 +10,26 @@ template<typename T>
 class PoolChunk
 {
 public:
-    PoolChunk();
-    PoolChunk(const PoolChunk&source);
+    PoolChunk() = default;
 
-    PoolChunk(PoolChunk&&source)noexcept;
-    ~PoolChunk();
-    /*{
+    PoolChunk(const PoolChunk&source)
+        :mBitset(source.mBitset)
+    {
+        this->mCopyHelper(source);
+    }
+
+    PoolChunk(PoolChunk&&source)noexcept
+        :mBitset(source.mBitset)
+    {
+        this->mCopyHelper(std::move(source));
+    }
+
+    ~PoolChunk()
+    {
         this->clear();
-    }*/
+    }
 
-
+    void clear();
 
     PoolChunk&operator=(PoolChunk&&source);
     PoolChunk&operator=(const PoolChunk&source);
@@ -34,12 +44,15 @@ public:
         return this->mBitset.none();
     }
 
-    T& getItem(std::size_t index)const
+    T& getItem(std::size_t index)
     {
-        return *(reinterpret_cast<T*>(mBuffer)+index);
+        return *(reinterpret_cast<T*>(mBuffer1)+index);
     }
 
-    //void remove(size_t index);
+    const T& getItem(std::size_t index)const
+    {
+        return *(reinterpret_cast<const T*>(mBuffer1)+index);
+    }
 
     void debug()const;
 
@@ -92,14 +105,8 @@ public:
     };
 
     Iterator begin();
-    /*{
-        //std::cout<<"Begin\n";
-        return Iterator(this,0);
-    }*/
-
     Iterator end()
     {
-        //std::cout<<"End\n";
         return Iterator(this,N);
     }
 
@@ -157,10 +164,6 @@ public:
     };
 
     CIterator begin()const;
-    /*{
-        return CIterator(this,0);
-    }*/
-
     CIterator end()const
     {
         return CIterator(this,N);
@@ -168,72 +171,75 @@ public:
 
 
 private:
-    void clear();
+    void mCopyHelper(const PoolChunk&source);
+    void mCopyHelper(PoolChunk&&source)noexcept;
 
     void putAtIndex(const T&item,int index)
     {
-        new (mBuffer + index*sizeof (T)) T(item);
+        new (mBuffer1 + index*sizeof (T)) T(item);
     }
     void putAtIndex(T&&item,int index)
     {
-        new (mBuffer + index*sizeof (T)) T(std::move(item));
+        new (mBuffer1 + index*sizeof (T)) T(std::move(item));
     }
 
 
     size_t reserveSpace();
-    unsigned char * mBuffer;
+    char mBuffer1[N * sizeof (T)];
     std::bitset<N> mBitset;
 };
 
-template<typename T>
-PoolChunk<T>::PoolChunk()
-{
-    mBuffer = new unsigned char[N*sizeof (T)];
-}
+
 
 template<typename T>
-PoolChunk<T>::PoolChunk(const PoolChunk&source)
+void PoolChunk<T>::mCopyHelper(const PoolChunk& source)
 {
-
-
-    mBuffer = new unsigned char[N*sizeof (T)];
-
     if(!source.empty())
     {
-        T*ptr = reinterpret_cast<T*>(source.mBuffer);
+        const T*ptr = reinterpret_cast<const T*>(source.mBuffer1);
 
         for(std::size_t i=0;i<N;++i)
         {
-            if(source.mBitset[i])
+            if(mBitset[i])
             {
-                this->mBitset[i]=true;
                 this->putAtIndex(*ptr,i);
             }
             ptr++;
         }
     }
-    //std::cout<<"EFGH\n";
 }
-template<typename T>
-PoolChunk<T>::~PoolChunk()
-{
-    this->clear();
 
-    if(mBuffer!=nullptr)
+template<typename T>
+void PoolChunk<T>::mCopyHelper(PoolChunk&& source)noexcept
+{
+    if(!source.empty())
     {
-        delete [] mBuffer;
-        mBuffer=nullptr;
+        T*ptr = reinterpret_cast<T*>(source.mBuffer1);
+
+        for(std::size_t i=0;i<N;++i)
+        {
+            if(mBitset[i])
+            {
+                this->putAtIndex(std::move(*ptr),i);
+            }
+            ptr++;
+        }
     }
 }
 
 template<typename T>
-PoolChunk<T>::PoolChunk(PoolChunk&&source)noexcept
-    :mBuffer(source.mBuffer),mBitset(std::move(source.mBitset))
+void PoolChunk<T>::clear()
 {
-    source.mBuffer=nullptr;
-    source.mBitset.reset();
-
-    //std::cout<<"ABCD\n";
+    if(!this->empty())
+    {
+        T * ptr = reinterpret_cast<T*>(mBuffer1);
+        for(std::size_t i =0; i<N;++i)
+        {
+            if(mBitset[i])ptr->~T();
+            ++ptr;
+        }
+        mBitset.reset();
+    }
 }
 
 template<typename T>
@@ -244,24 +250,7 @@ PoolChunk<T>& PoolChunk<T>::operator=(const PoolChunk&source)
         this->clear();
         this->mBitset = source.mBitset;
 
-        //mBuffer = new unsigned char[N*sizeof (T)];
-
-
-        if(!source.empty())
-        {
-            T*ptr = reinterpret_cast<T*>(source.mBuffer);
-
-            for(std::size_t i=0;i<N;++i)
-            {
-                if(source.mBitset[i])
-                {
-                    this->mBitset[i]=true;
-                    this->putAtIndex(*ptr,i);
-                }
-                ptr++;
-            }
-        }
-
+        this->mCopyHelper(source);
     }
     return *this;
 }
@@ -274,36 +263,20 @@ PoolChunk<T>& PoolChunk<T>::operator=(PoolChunk&&source)
     {
         this->clear();
         this->mBitset = source.mBitset;
-        this->mBuffer = source.mBuffer;
 
-        source.mBuffer=nullptr;
-        source.mBitset.reset();
+        this->mCopyHelper(std::move(source));
     }
 
     return *this;
 }
 
-template<typename T>
-void PoolChunk<T>::clear()
-{
-    if(!this->empty())
-    {
-        T * ptr = reinterpret_cast<T*>(mBuffer);
-        for(std::size_t i =0; i<N;++i)
-        {
-            if(mBitset[i])ptr->~T();
-            ++ptr;
-        }
-        mBitset.reset();
-    }
-}
+
 
 template <typename T>
 typename PoolChunk<T>::Iterator PoolChunk<T>::insert(const T&item)
 {
     size_t i = this->reserveSpace();
     this->putAtIndex(item,i);
-    //new (mBuffer + i*sizeof (T)) T(item);
     return Iterator(this,i);
 }
 
@@ -312,7 +285,6 @@ typename PoolChunk<T>::Iterator PoolChunk<T>::insert(T&&item)
 {
     size_t i = this->reserveSpace();
     this->putAtIndex(std::move(item),i);
-    //new (mBuffer + i*sizeof (T)) T(std::move(item));
     return Iterator(this,i);
 }
 
@@ -320,7 +292,7 @@ template <typename T>
 void PoolChunk<T>::debug()const
 {
     std::cout<<this->mBitset<<std::endl;
-    T* ptr = reinterpret_cast<T*>(this->mBuffer);
+    const T* ptr = reinterpret_cast<const T*const>(this->mBuffer1);
 
     for(std::size_t i =0; i<N; ++i)
     {
@@ -337,10 +309,9 @@ void PoolChunk<T>::remove(Iterator&iter)
 {
     size_t index = iter.index;
 
-    if(!this->mBitset[index])throw "Trying to remove nullptr";
-    (reinterpret_cast<T*>(this->mBuffer)+index) -> ~T();
+    if(!this->mBitset[index])throw "[PoolChunk] Trying to remove nullptr";
+    (reinterpret_cast<T*>(this->mBuffer1)+index) -> ~T();
     this->mBitset[index] = false;
-    ++iter;
 }
 
 template <typename T>
@@ -354,13 +325,12 @@ std::size_t PoolChunk<T>::reserveSpace()
             return i;
         }
     }
-    throw "The pool chunk is full";
+    throw "[PoolChunk] The chunk is full";
 }
 
 template<typename T>
 typename PoolChunk<T>::Iterator& PoolChunk<T>::Iterator::operator++()
 {
-    //std::cout<<"++op"<<std::endl;
     do
     {
         ++index;
@@ -373,7 +343,6 @@ typename PoolChunk<T>::Iterator& PoolChunk<T>::Iterator::operator++()
 template<typename T>
 typename PoolChunk<T>::Iterator PoolChunk<T>::Iterator::operator++(int)
 {
-    //std::cout<<"op++"<<std::endl;
     auto copy = *this;
     this->operator++();
     return copy;

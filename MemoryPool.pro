@@ -12,4 +12,8 @@ HEADERS += \
     MemoryPool.hpp \
     MemoryPoolChunk.hpp \
     Set.hpp \
-    Tester.h
+    Tester.h \
+    chunkTest.hpp \
+    poolTest.hpp \
+    setTest.hpp \
+    treeTest.hpp

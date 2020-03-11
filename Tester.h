@@ -11,6 +11,9 @@ public:
     Tester(Tester&&source);
     ~Tester();
 
+    Tester& operator=(const Tester&source);
+    Tester& operator=(Tester&&source);
+
     static int getCounter()
     {
         return counter;
@@ -37,8 +40,8 @@ public:
 
 private:
     int id;
-    static int counter;
-    static int counter2;
+    static int counter; //Objects counter
+    static int counter2; //ID counter
     friend std::ostream&operator<<(std::ostream&out,const Tester&tester);
 };
 
