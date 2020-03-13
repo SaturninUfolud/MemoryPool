@@ -1,6 +1,6 @@
 #ifndef SET_HPP
 #define SET_HPP
-#include "BST_Tree.hpp"
+#include "BST_TreeOld.hpp"
 
 template<typename T>
 class Set

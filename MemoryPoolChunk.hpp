@@ -3,14 +3,18 @@
 
 #include <bitset>
 #include <iostream>
+#include <type_traits>
+//#include <iterator>
+
 
 #define N 64
+
 
 template<typename T>
 class PoolChunk
 {
 public:
-    PoolChunk() = default;
+    PoolChunk()=default;
 
     PoolChunk(const PoolChunk&source)
         :mBitset(source.mBitset)
@@ -46,18 +50,23 @@ public:
 
     T& getItem(std::size_t index)
     {
-        return *(reinterpret_cast<T*>(mBuffer1)+index);
+        return *(reinterpret_cast<T*>(mBuffer)+index);
     }
 
     const T& getItem(std::size_t index)const
     {
-        return *(reinterpret_cast<const T*>(mBuffer1)+index);
+        return *(reinterpret_cast<const T*>(mBuffer)+index);
     }
 
     void debug()const;
 
+    template<bool IsConst=false>
     class Iterator
     {
+        using reference = typename std::conditional< IsConst, T const &, T & >::type;
+        using pointer = typename std::conditional< IsConst, T const *, T * >::type;
+        using pointer_chunk = typename std::conditional< IsConst, const PoolChunk<T>*, PoolChunk<T>* >::type;
+
     public:
         Iterator()
             :mChunk(nullptr),index(N)
@@ -65,17 +74,26 @@ public:
 
         }
 
-        Iterator& operator++();
-        Iterator operator++(int);
-        T& operator*()const
+        template<typename U = std::enable_if<IsConst>>
+        Iterator(const Iterator<false>&nonConstIt)
+            :mChunk(nonConstIt.mChunk),index(nonConstIt.index)
         {
-            return this->mChunk->getItem(index);
+            //std::cout<<"Conversion"<<std::endl;
         }
 
-        T* operator->()const
+
+        Iterator& operator++();
+        Iterator operator++(int);
+
+        reference operator*()const
+        {
+            return this->mChunk->getItem(this->index);
+        }
+        pointer operator->()const
         {
             return &(this->operator*());
         }
+
 
         bool operator==(const Iterator&it2)const
         {
@@ -92,111 +110,88 @@ public:
             return index<N;
         }
 
+        void setNull()
+        {
+            this->index=N;
+        }
+
     private:
-        Iterator(PoolChunk<T>*mChunk, size_t index)
+        Iterator(pointer_chunk mChunk, size_t index)
             :mChunk(mChunk),index(index)
         {
 
         }
 
         friend class PoolChunk;
-        PoolChunk<T> * mChunk;
+
+        pointer_chunk mChunk;
+
         size_t index;
     };
 
-    Iterator begin();
-    Iterator end()
+    Iterator<false> copyIterator(const Iterator<false>&source)
     {
-        return Iterator(this,N);
+        return Iterator<false>(this,source.index);
     }
 
-    Iterator insert(const T& item);
-    Iterator insert(T&& item);
-
-    void remove(Iterator& iter);
-
-    class CIterator
+    Iterator<true> copyIterator(const Iterator<true>&source)const
     {
-    public:
-        CIterator()
-            :mChunk(nullptr),index(N)
-        {
+        return Iterator<true>(this,source.index);
+    }
 
-        }
-
-        CIterator& operator++();
-        CIterator operator++(int);
-        const T& operator*()const
-        {
-            return this->mChunk->getItem(index);
-        }
-
-        const T* operator->()const
-        {
-            return &(this->operator*());
-        }
-
-        bool operator==(const CIterator&it2)const
-        {
-            return it2.index==this->index&&it2.mChunk==this->mChunk;
-        }
-
-        bool operator!=(const CIterator&it2)const
-        {
-            return !(it2==*this);
-        }
-
-        operator bool()const
-        {
-            return index<N;
-        }
-
-    private:
-        CIterator(const PoolChunk<T>*mChunk, size_t index)
-            :mChunk(mChunk),index(index)
-        {
-
-        }
-
-        friend class PoolChunk;
-        const PoolChunk<T> * mChunk;
-        size_t index;
-    };
-
-    CIterator begin()const;
-    CIterator end()const
+    Iterator<false> begin();
+    Iterator<false> end()
     {
-        return CIterator(this,N);
+        return Iterator<false>(this,N);
+    }
+
+    Iterator<false> insert(const T& item);
+    Iterator<false> insert(T&& item);
+
+    void remove(Iterator<false>& iter);
+
+    Iterator<true> cbegin()const;
+    Iterator<true> cend()const
+    {
+         return Iterator<true>(this,N);
+    }
+
+
+    Iterator<true> begin()const
+    {
+        return this->cbegin();
+    }
+    Iterator<true> end()const
+    {
+        return this->cend();
     }
 
 
 private:
     void mCopyHelper(const PoolChunk&source);
-    void mCopyHelper(PoolChunk&&source)noexcept;
+    void mCopyHelper(PoolChunk&&source);
 
     void putAtIndex(const T&item,int index)
     {
-        new (mBuffer1 + index*sizeof (T)) T(item);
+        new (mBuffer + index*sizeof (T)) T(item);
     }
     void putAtIndex(T&&item,int index)
     {
-        new (mBuffer1 + index*sizeof (T)) T(std::move(item));
+        new (mBuffer + index*sizeof (T)) T(std::move(item));
     }
 
 
     size_t reserveSpace();
-    char mBuffer1[N * sizeof (T)];
+    char mBuffer[sizeof (T)* N];
+
     std::bitset<N> mBitset;
 };
-
-
-
 template<typename T>
 void PoolChunk<T>::mCopyHelper(const PoolChunk& source)
 {
     if(!source.empty())
     {
-        const T*ptr = reinterpret_cast<const T*>(source.mBuffer1);
+        const T*ptr = reinterpret_cast<const T*>(source.mBuffer);
 
         for(std::size_t i=0;i<N;++i)
         {
@@ -210,11 +205,13 @@ void PoolChunk<T>::mCopyHelper(const PoolChunk& source)
 }
 
 template<typename T>
-void PoolChunk<T>::mCopyHelper(PoolChunk&& source)noexcept
+void PoolChunk<T>::mCopyHelper(PoolChunk&& source)
 {
+    //std::cout<<"move chunk"<<std::endl;
+
     if(!source.empty())
     {
-        T*ptr = reinterpret_cast<T*>(source.mBuffer1);
+        T*ptr = reinterpret_cast<T*>(source.mBuffer);
 
         for(std::size_t i=0;i<N;++i)
         {
@@ -232,7 +229,7 @@ void PoolChunk<T>::clear()
 {
     if(!this->empty())
     {
-        T * ptr = reinterpret_cast<T*>(mBuffer1);
+        T * ptr = reinterpret_cast<T*>(mBuffer);
         for(std::size_t i =0; i<N;++i)
         {
             if(mBitset[i])ptr->~T();
@@ -248,8 +245,8 @@ PoolChunk<T>& PoolChunk<T>::operator=(const PoolChunk&source)
     if(this!=&source)
     {
         this->clear();
-        this->mBitset = source.mBitset;
 
+        this->mBitset = source.mBitset;
         this->mCopyHelper(source);
     }
     return *this;
@@ -263,7 +260,6 @@ PoolChunk<T>& PoolChunk<T>::operator=(PoolChunk&&source)
     {
         this->clear();
         this->mBitset = source.mBitset;
-
         this->mCopyHelper(std::move(source));
     }
 
@@ -273,26 +269,26 @@ PoolChunk<T>& PoolChunk<T>::operator=(PoolChunk&&source)
 
 
 template <typename T>
-typename PoolChunk<T>::Iterator PoolChunk<T>::insert(const T&item)
+typename PoolChunk<T>::template Iterator<false> PoolChunk<T>::insert(const T&item)
 {
     size_t i = this->reserveSpace();
     this->putAtIndex(item,i);
-    return Iterator(this,i);
+    return Iterator<false>(this,i);
 }
 
 template <typename T>
-typename PoolChunk<T>::Iterator PoolChunk<T>::insert(T&&item)
+typename PoolChunk<T>::template Iterator<false> PoolChunk<T>::insert(T&&item)
 {
     size_t i = this->reserveSpace();
     this->putAtIndex(std::move(item),i);
-    return Iterator(this,i);
+    return Iterator<false>(this,i);
 }
 
 template <typename T>
 void PoolChunk<T>::debug()const
 {
     std::cout<<this->mBitset<<std::endl;
-    const T* ptr = reinterpret_cast<const T*const>(this->mBuffer1);
+    const T* ptr = reinterpret_cast<const T*const>(this->mBuffer);
 
     for(std::size_t i =0; i<N; ++i)
     {
@@ -305,12 +301,12 @@ void PoolChunk<T>::debug()const
 }
 
 template<typename T>
-void PoolChunk<T>::remove(Iterator&iter)
+void PoolChunk<T>::remove(Iterator<false>&iter)
 {
     size_t index = iter.index;
 
     if(!this->mBitset[index])throw "[PoolChunk] Trying to remove nullptr";
-    (reinterpret_cast<T*>(this->mBuffer1)+index) -> ~T();
+    (reinterpret_cast<T*>(this->mBuffer)+index) -> ~T();
     this->mBitset[index] = false;
 }
 
@@ -329,7 +325,8 @@ std::size_t PoolChunk<T>::reserveSpace()
 }
 
 template<typename T>
-typename PoolChunk<T>::Iterator& PoolChunk<T>::Iterator::operator++()
+template<bool IsConst>
+typename PoolChunk<T>::template Iterator<IsConst>& PoolChunk<T>::Iterator<IsConst>::operator++()
 {
     do
     {
@@ -341,7 +338,8 @@ typename PoolChunk<T>::Iterator& PoolChunk<T>::Iterator::operator++()
 }
 
 template<typename T>
-typename PoolChunk<T>::Iterator PoolChunk<T>::Iterator::operator++(int)
+template<bool IsConst>
+typename PoolChunk<T>::template Iterator<IsConst> PoolChunk<T>::Iterator<IsConst>::operator++(int)
 {
     auto copy = *this;
     this->operator++();
@@ -349,9 +347,9 @@ typename PoolChunk<T>::Iterator PoolChunk<T>::Iterator::operator++(int)
 }
 
 template<typename T>
-typename PoolChunk<T>::Iterator PoolChunk<T>::begin()
+typename PoolChunk<T>::template Iterator<false> PoolChunk<T>::begin()
 {
-    Iterator it1 = Iterator(this,0);
+    Iterator<false> it1 = Iterator<false>(this,0);
     while(!this->mBitset[it1.index] && it1.index<N)
     {
         ++it1.index;
@@ -360,29 +358,9 @@ typename PoolChunk<T>::Iterator PoolChunk<T>::begin()
 }
 
 template<typename T>
-typename PoolChunk<T>::CIterator& PoolChunk<T>::CIterator::operator++()
+typename PoolChunk<T>::template Iterator<true> PoolChunk<T>::cbegin()const
 {
-    do
-    {
-        ++index;
-
-    }while(index<N && !this->mChunk->mBitset[index]);
-
-    return *this;
-}
-
-template<typename T>
-typename PoolChunk<T>::CIterator PoolChunk<T>::CIterator::operator++(int)
-{
-    auto copy = *this;
-    this->operator++();
-    return copy;
-}
-
-template<typename T>
-typename PoolChunk<T>::CIterator PoolChunk<T>::begin()const
-{
-    CIterator it1 = CIterator(this,0);
+    Iterator<true> it1 = Iterator<true>(this,0);
     while(!this->mBitset[it1.index] && it1.index<N)
     {
         ++it1.index;

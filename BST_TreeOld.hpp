@@ -2,6 +2,8 @@
 #define BST_TREE_HPP
 
 #include "MemoryPool.hpp"
+#include <type_traits>
+
 
 template<typename T>
 class BST_Tree
@@ -14,17 +16,18 @@ public:
     }
 
     BST_Tree(const BST_Tree&source);
-    //BST_Tree(BST_Tree&&source);
+    BST_Tree(BST_Tree&&source);
 
     /*~BST_Tree();*/
     BST_Tree& operator=(const BST_Tree&source);
     BST_Tree& operator=(BST_Tree&&source);
 
+    template<typename T1 = T>
     class Node
     {
 
     public:
-        typedef typename Pool<BST_Tree<T>::Node>::Iterator NodePtr;
+        using NodePtr = typename Pool<typename BST_Tree<T1>::Node>::template Iterator<false>;
 
         Node(const T&item)
             :item(item)
@@ -41,9 +44,7 @@ public:
         NodePtr lChild;
         NodePtr rChild;
     };
-
-    //typedef typename Pool<BST_Tree<T>::Node>::Iterator NodePtr;
-    typedef typename Node::NodePtr NodePtr;
+    using NodePtr = typename Node<T>::NodePtr;
 
     bool empty()const
     {
@@ -95,7 +96,7 @@ private:
     NodePtr mRemove(NodePtr node);
     NodePtr mCopyTreeRecursive(const NodePtr& oldRoot);
 
-    Pool<typename BST_Tree<T>::Node> mNodePool;
+    Pool<typename BST_Tree<T>::Node<T>> mNodePool;
 
     static void printBT(const std::string& prefix, const NodePtr& node, bool isLeft);
 
@@ -113,14 +114,13 @@ BST_Tree<T>::BST_Tree(const BST_Tree&source)
     this->root = mCopyTreeRecursive(source.root);
 }
 
-/*
 template<typename T>
 BST_Tree<T>::BST_Tree(BST_Tree&&source)
     :mNodePool(std::move(source.mNodePool))
 {
     this->root = mCopyTreeRecursive(source.root);
     source.root.setNull();
-}*/
+}
 
 template <typename T>
 BST_Tree<T>& BST_Tree<T>::operator=(const BST_Tree&source)
@@ -153,11 +153,11 @@ typename BST_Tree<T>::NodePtr BST_Tree<T>::mCopyTreeRecursive(const NodePtr& old
     NodePtr newRoot;
     if(oldRoot)
     {
-        std::cout<<"F1-in"<<std::endl;
+        //std::cout<<"F1-in"<<std::endl;
 
         newRoot = this->mNodePool.copyIterator(oldRoot);
 
-        std::cout<<"F1-in-end"<<std::endl;
+        //std::cout<<"F1-in-end"<<std::endl;
 
         if(newRoot->lChild)
         {

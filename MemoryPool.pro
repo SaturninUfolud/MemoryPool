@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += console c++11
+CONFIG += console c++14
 CONFIG -= app_bundle
 CONFIG -= qt
 
@@ -9,6 +9,7 @@ SOURCES += \
 
 HEADERS += \
     BST_Tree.hpp \
+    BST_TreeOld.hpp \
     MemoryPool.hpp \
     MemoryPoolChunk.hpp \
     Set.hpp \

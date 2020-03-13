@@ -9,6 +9,12 @@ inline void chunkTest()
     {
         std::cout<<"P0"<<std::endl;
         PoolChunk<Tester> chunk;
+
+        for(const Tester&t:chunk)
+        {
+            std::cout<<t<<std::endl;
+        }
+
         std::cout<<"P1"<<std::endl;
 
         auto it1 = chunk.insert(Tester());
@@ -24,16 +30,19 @@ inline void chunkTest()
 
         chunk.remove(it1);
         std::cout<<"P4"<<std::endl;
-
         chunk.debug();
 
         chunk.insert(Tester());
 
         std::cout<<"P5"<<std::endl;
+
+        //auto it = chunk.begin();
         for(Tester& t: chunk)
         {
             std::cout<<t<<std::endl;
         }
+
+
 
         std::cout<<"P6"<<std::endl;
         {
@@ -43,66 +52,34 @@ inline void chunkTest()
             {
                 std::cout<<t<<std::endl;
             }
+
+            std::cout<<"P6a"<<std::endl;
+            PoolChunk<Tester> chunk1 = chunk;
+            chunk1.debug();
+
+            std::cout<<"P6b"<<std::endl;
+
+            PoolChunk<Tester> chunk2 = std::move(chunk);
+            chunk2.debug();
+
+            std::cout<<"P6c"<<std::endl;
+            chunk.debug();
+
+            std::cout<<"P6d"<<std::endl;
+            chunk = std::move(chunk1);
+
         }
 
-        std::cout<<"P6"<<std::endl<<std::endl;
-
+        std::cout<<"P7"<<std::endl;
+        {
+            PoolChunk<Tester>::Iterator<false> it2 = chunk.begin();
+            PoolChunk<Tester>::Iterator<false> it3 = it2;
+            PoolChunk<Tester>::Iterator<true> it4 = it3;
+            PoolChunk<Tester>::Iterator<true> it5 = it4;
+            std::cout<<*it5<<std::endl;
+        }
+        std::cout<<"P8"<<std::endl;
     }
 }
 
-
-inline void chunkTest2()
-{
-
-    PoolChunk<Tester> s;
-
-
-
-
-    auto t1 = s.insert(Tester());
-    Tester l1;
-
-    for(int i=0;i<10;++i)
-    {
-        s.insert(Tester());
-    }
-
-    auto t3 = s.insert(Tester());
-
-
-    for(int i=0;i<10;++i)
-    {
-        s.insert(Tester());
-    }
-
-
-    std::vector<PoolChunk<Tester>> vs, vs2;
-    vs.resize(1000);
-
-    std::cout<<"D3"<<std::endl;
-
-    for(auto& e : vs)
-    {
-        e = s;
-        e.insert(Tester());
-    }
-    vs2.resize(1000);
-    for(std::size_t i = 0u; i < vs.size(); ++i) { vs2[i] = std::move(vs[i]); }
-    for(auto& e : vs2) { e.remove(t1); }
-    vs = vs2;
-    vs2.clear();
-
-
-    std::cout<<"D4"<<std::endl;
-
-    const auto s2 = std::move(vs.front());
-    std::cout<<"D5"<<std::endl;
-
-    //if(auto f = s2.find(t2)) std::cout << "Found: " << *f << std::endl;
-    auto s3 = s2;
-    s3.debug();
-    s = s3;
-
-    std::cout<<"D6"<<std::endl;
-}
 

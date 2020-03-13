@@ -2,18 +2,20 @@
 #include <bitset>
 #include "MemoryPool.hpp"
 #include "Tester.h"
-#include "chunkTest.hpp"
+//#include "chunkTest.hpp"
+//#include "poolTest.hpp"
+#include "treeTest.hpp"
+
 
 int main()
 {
     std::cout<<"Hello world"<<std::endl;
     try
     {
-        chunkTest();
-
+        //chunkTest();
         //poolTest();
         //poolTest2();
-        //treeTest();
+        treeTest();
         //treeTest2();
         //setTest();
     }

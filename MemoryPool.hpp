@@ -3,6 +3,9 @@
 #include "MemoryPoolChunk.hpp"
 #include <vector>
 #include <stack>
+#include <type_traits>
+
+#define _REMOVE_EMPTY_CHUNKS
 
 template<typename T>
 class Pool
@@ -13,42 +16,57 @@ public:
     {
 
     }
-    Pool(const Pool&source)
-        :mChunks(source.mChunks), mSize(source.mSize)
+    Pool(const Pool&pool);
+    Pool(Pool&&pool);
+    ~Pool()
     {
+        clear();
+    }
 
-    }
-    Pool(Pool&&source)
-        :mChunks(std::move(source.mChunks)), mSize(source.mSize)
-    {
-        source.mSize=0;
-    }
-    ~Pool() = default;
+    void clear();
+
 
     Pool& operator=(const Pool&source);
     Pool& operator=(Pool&&source);
 
+    template<bool IsConst = false>
     class Iterator
     {
-    public:
-        static Iterator nullIter;
+        using reference = typename std::conditional< IsConst, T const &, T & >::type;
+        using pointer = typename std::conditional< IsConst, T const *, T * >::type;
+        using ChunksVectorPtr = typename std::conditional
+            < IsConst, const std::vector<PoolChunk<T>*>*, std::vector<PoolChunk<T>*>* >::type;
 
+        using ChunkIterator = typename PoolChunk<T>::template Iterator<IsConst>;
+
+    public:
         Iterator()
-            :vecIndex(0),mChunksPtr(nullptr),chunkIter(typename PoolChunk<T>::Iterator())
+            :vecIndex(0),mChunksPtr(nullptr),chunkIter(ChunkIterator())
         {
 
         }
-        //static Iterator nullValue;
+
+        template<typename U=std::enable_if<IsConst>>
+        Iterator(const Iterator<false>&nonConstIterator)
+            :vecIndex(nonConstIterator.vecIndex)
+            ,mChunksPtr(nonConstIterator.mChunksPtr)
+            ,chunkIter(nonConstIterator.chunkIter)
+        {
+
+        }
 
         Iterator& operator++();
         Iterator operator++(int);
 
-        T& operator*()const
+        Iterator& operator+=(size_t d1);
+        Iterator operator+(size_t d1)const;
+
+        reference operator*()const
         {
             return *chunkIter;
         }
 
-        T* operator->()const
+        pointer operator->()const
         {
             return &(this->operator*());
         }
@@ -67,146 +85,134 @@ public:
             return (bool)this->chunkIter;
         }
 
+        /*operator pointer()const
+        {
+            std::cout<<"To ptr"<<std::endl;
+            return (bool)(*this)? &(this->operator*()) : nullptr;
+        }*/
+
         void setNull()
         {
-            *this = nullIter;
+            this->mChunksPtr = nullptr;
+            this->chunkIter.setNull();
         }
 
     private:
         friend class Pool;
-        Iterator(size_t vecIndex,
-                 std::vector<PoolChunk<T>>* mChunksPtr,
-                 typename PoolChunk<T>::Iterator chunkIter)
+        Iterator(std::size_t vecIndex, ChunksVectorPtr mChunksPtr,ChunkIterator chunkIter)
         :vecIndex(vecIndex),mChunksPtr(mChunksPtr),chunkIter(chunkIter)
         {
 
         }
 
         std::size_t vecIndex;
-        std::vector<PoolChunk<T>>* mChunksPtr;
+        ChunksVectorPtr mChunksPtr;
 
-        typename PoolChunk<T>::Iterator chunkIter;
+        ChunkIterator chunkIter;
+
+        //typename PoolChunk<T>::Iterator chunkIter;
     };
-
-    Iterator begin()
+    Iterator<false>begin()
     {
-        return Iterator(0,&mChunks,mChunks[0].begin());
+        return empty()?Iterator<false>():Iterator<false>(0,&mChunks,mChunks[0]->begin());
+    }
+    Iterator<false>end()
+    {
+        return empty()?Iterator<false>():Iterator<false>(mChunks.size(),&mChunks,mChunks[mChunks.size()-1]->end());
     }
 
-    Iterator end()
+    Iterator<true> cbegin()const
     {
-        return Iterator(mChunks.size(),&mChunks,mChunks[mChunks.size()-1].end());
+        return empty()?Iterator<true>():Iterator<true>(0,&mChunks,mChunks[0]->begin());
+    }
+    Iterator<true> cend()const
+    {
+        return empty()?Iterator<true>():Iterator<true>(mChunks.size(),&mChunks,mChunks[mChunks.size()-1]->end());
     }
 
-    Iterator insert(const T&item);
-    Iterator insert(T&&item);
-
-    void remove(Iterator& iter);
-
-    Iterator copyIterator(Iterator oldIterator)
+    Iterator<true> begin()const
     {
-        return Iterator(oldIterator.vecIndex,&mChunks,oldIterator.chunkIter);
+        return this->cbegin();
     }
 
-
-    class CIterator
+    Iterator<true> end()const
     {
-    public:
-        CIterator()
-        :vecIndex(0),mChunksPtr(nullptr),chunkIter(typename PoolChunk<T>::CIterator())
-        {
-
-        }
-        //static Iterator nullValue;
-
-        CIterator& operator++();
-        CIterator operator++(int);
-
-        const T& operator*()const
-        {
-            return *chunkIter;
-        }
-
-        const T* operator->()const
-        {
-            return &(this->operator*());
-        }
-
-        bool operator==(const CIterator&it2)const
-        {
-            return this->chunkIter==it2;
-        }
-        bool operator!=(const CIterator&it2)const
-        {
-            return !(*this==it2);
-        }
-
-        operator bool()const
-        {
-            return (bool)this->chunkIter;
-        }
-
-    private:
-        friend class Pool;
-        CIterator(size_t vecIndex,
-                 const std::vector<PoolChunk<T>>* mChunksPtr,
-                 typename PoolChunk<T>::CIterator chunkIter)
-            :vecIndex(vecIndex),mChunksPtr(mChunksPtr),chunkIter(chunkIter)
-        {
-
-        }
-
-        CIterator(const Iterator& iter)
-            :vecIndex(iter.vecIndex),
-              mChunksPtr(iter.mChunksPtr),
-              chunkIter(iter.chunkIter)
-        {
-
-        }
-
-        std::size_t vecIndex;
-        const std::vector<PoolChunk<T>>* mChunksPtr;
-
-        typename PoolChunk<T>::CIterator chunkIter;
-    };
-
-    CIterator begin()const
-    {
-        return CIterator(0,&mChunks,mChunks[0].begin());
+        return this->cend();
     }
 
-    CIterator end()const
-    {
-        return CIterator(mChunks.size(),&mChunks,mChunks[mChunks.size()-1].end());
-    }
+    Iterator<false> copyIterator(const Iterator<false>&source);
+    Iterator<true> copyIterator(const Iterator<true>&source)const;
+
+    Iterator<false> insert(const T&item);
+    Iterator<false> insert(T&&item);
+
+    void remove(Iterator<false>& iter);    
 
     std::size_t size()const
     {
         return this->mSize;
     }
 
+    bool empty()const
+    {
+        return this->mSize==0;
+    }
+
 private:
-    std::vector<PoolChunk<T>> mChunks;
-
+    std::vector<PoolChunk<T>*> mChunks;
     std::size_t mSize;
-
-    //TODO
-    //std::stack<Iterator> mFreePositions;
     std::size_t reserveChunk();
 };
 
+template<typename T>
+Pool<T>::Pool(const Pool&source)
+    :mSize(source.mSize)
+{
+    this->mChunks.reserve(source.mChunks.size());
+    for(const PoolChunk<T>* chunk:source.mChunks)
+    {
+        this->mChunks.push_back(new PoolChunk<T>(*chunk));
+    }
+}
 
 template<typename T>
-typename Pool<T>::Iterator Pool<T>::Iterator::nullIter;
+Pool<T>::Pool(Pool&&source)
+    :mChunks(std::move(source.mChunks)),mSize(source.mSize)
+{
+    source.mSize=0;
+}
 
+template<typename T>
+void Pool<T>::clear()
+{
+    if(!this->mChunks.empty())
+    {
+        for(PoolChunk<T>* &chunk:mChunks)
+        {
+            if(chunk!=nullptr)
+            {
+                delete chunk;
+                chunk=nullptr;
+            }
+        }
+        this->mChunks.clear();
+    }
+    this->mSize = 0;
+}
 
 template <typename T>
 Pool<T>& Pool<T>::operator=(const Pool&source)
 {
     if(this!=&source)
     {
+        clear();
+
         this->mSize = source.mSize;
-        this->mChunks = source.mChunks;
+        this->mChunks.reserve(source.mChunks.size());
+        for(const PoolChunk<T>* chunk:source.mChunks)
+        {
+            this->mChunks.push_back(new PoolChunk<T>(*chunk));
+        }
     }
     return *this;
 }
@@ -216,6 +222,8 @@ Pool<T>& Pool<T>::operator=(Pool&&source)
 {
     if(this!=&source)
     {
+        clear();
+
         this->mSize = source.mSize;
         this->mChunks = std::move(source.mChunks);
 
@@ -224,30 +232,77 @@ Pool<T>& Pool<T>::operator=(Pool&&source)
     return *this;
 }
 
-
 template<typename T>
-typename Pool<T>::Iterator Pool<T>::insert(const T&item)
+typename Pool<T>::template Iterator<false> Pool<T>::copyIterator(const Iterator<false>&source)
 {
-    std::size_t vecIndex = this->reserveChunk();
-    typename PoolChunk<T>::Iterator chunkIter = this->mChunks[vecIndex].insert(item);
-    return Pool<T>::Iterator(vecIndex,&this->mChunks,chunkIter);
+    if(source.vecIndex<this->mChunks.size())
+    {
+        return Pool<T>::Iterator<false>
+            (source.vecIndex,&this->mChunks,this->mChunks[source.vecIndex]->copyIterator(source.chunkIter));
+    }
+    return Pool<T>::Iterator<false>();
 }
 
 template<typename T>
-typename Pool<T>::Iterator Pool<T>::insert(T&&item)
+typename Pool<T>::template Iterator<true> Pool<T>::copyIterator(const Iterator<true>&source)const
+{
+    if(source.vecIndex<this->mChunks.size())
+    {
+        return Pool<T>::Iterator<true>
+            (source.vecIndex,&this->mChunks,this->mChunks[source.vecIndex]->copyIterator(source.chunkIter));
+    }
+    return Pool<T>::Iterator<true>();
+}
+
+template<typename T>
+typename Pool<T>::template Iterator<false> Pool<T>::insert(const T&item)
 {
     std::size_t vecIndex = this->reserveChunk();
-    typename PoolChunk<T>::Iterator chunkIter
-            = this->mChunks[vecIndex].insert(std::move(item));
-    return Pool<T>::Iterator(vecIndex,&this->mChunks,chunkIter);
+    typename PoolChunk<T>::template Iterator<false> chunkIter = this->mChunks[vecIndex]->insert(item);
+    return Pool<T>::Iterator<false>(vecIndex,&this->mChunks,chunkIter);
+}
+
+template<typename T>
+typename Pool<T>::template Iterator<false> Pool<T>::insert(T&&item)
+{
+    std::size_t vecIndex = this->reserveChunk();
+    typename PoolChunk<T>::template Iterator<false> chunkIter
+        = this->mChunks[vecIndex]->insert(std::move(item));
+    return Pool<T>::Iterator<false>(vecIndex,&this->mChunks,chunkIter);
 }
 
 
+
 template<typename T>
-void Pool<T>::remove(Iterator&iter)
-{    
+void Pool<T>::remove(Iterator<false>&iter)
+{
+    if(empty())throw "[Pool] The pool is empty!";
+
     --this->mSize;
-    this->mChunks[iter.vecIndex].remove(iter.chunkIter);
+
+    if(!iter)throw "[Pool] Trying to remove null iterator.";
+    else if(iter.mChunksPtr!=&this->mChunks)throw "[Pool] Trying to remove iterator to the other pool.";
+
+    std::size_t vecIndex = iter.vecIndex;
+
+    PoolChunk<T>*chunk = this->mChunks[vecIndex];
+    chunk->remove(iter.chunkIter);
+    iter.setNull();
+
+
+#ifdef _REMOVE_EMPTY_CHUNKS
+    if(chunk->empty())
+    {
+        delete chunk;
+        std::size_t s1 = this->mChunks.size() - 1;
+
+        if(s1 > 0 && s1 != vecIndex)
+        {
+            this->mChunks[vecIndex] = this->mChunks[s1];
+        }
+        this->mChunks.resize(s1);
+    }
+#endif
 }
 
 template<typename T>
@@ -259,41 +314,19 @@ std::size_t Pool<T>::reserveChunk()
     while(i>0)
     {
         --i;
-        if(!this->mChunks[i].full())return i;
+        if(!this->mChunks[i]->full())return i;
     }
 
     i = this->mChunks.size();
-    this->mChunks.resize(i+1);
+    //this->mChunks.resize(i+1);
+    this->mChunks.push_back(new PoolChunk<T>());
+
     return i;
 }
 
 template<typename T>
-typename Pool<T>::Iterator& Pool<T>::Iterator::operator++()
-{
-    ++this->chunkIter;
-    if(!this->chunkIter)
-    {
-        ++vecIndex;
-        if(vecIndex<this->mChunksPtr->size())
-        {            
-            this->chunkIter = (*mChunksPtr)[vecIndex].begin();
-        }
-    }
-
-
-    return *this;
-}
-
-template<typename T>
-typename Pool<T>::Iterator Pool<T>::Iterator::operator++(int)
-{
-    Pool<T>::Iterator copy = *this;
-    this->operator++();
-    return copy;
-}
-
-template<typename T>
-typename Pool<T>::CIterator& Pool<T>::CIterator::operator++()
+template<bool IsConst>
+typename Pool<T>::template Iterator<IsConst>& Pool<T>::Iterator<IsConst>::operator++()
 {
     ++this->chunkIter;
     if(!this->chunkIter)
@@ -301,20 +334,44 @@ typename Pool<T>::CIterator& Pool<T>::CIterator::operator++()
         ++vecIndex;
         if(vecIndex<this->mChunksPtr->size())
         {
-            this->chunkIter = (*mChunksPtr)[vecIndex].begin();
+            this->chunkIter = this->mChunksPtr->operator[](vecIndex)->begin();
         }
     }
-
 
     return *this;
 }
 
 template<typename T>
-typename Pool<T>::CIterator Pool<T>::CIterator::operator++(int)
+template<bool IsConst>
+typename Pool<T>::template Iterator<IsConst> Pool<T>::Iterator<IsConst>::operator++(int)
 {
-    Pool<T>::CIterator copy = *this;
+    Pool<T>::Iterator<IsConst> copy = *this;
     this->operator++();
     return copy;
+}
+
+template<typename T>
+template<bool IsConst>
+typename Pool<T>::template Iterator<IsConst>& Pool<T>::Iterator<IsConst>::operator+=(size_t d1)
+{
+    for(size_t i=0;i<d1;++i)
+    {
+        this->operator++();
+    }
+    return *this;
+}
+
+template<typename T>
+template<bool IsConst>
+typename Pool<T>::template Iterator<IsConst> Pool<T>::Iterator<IsConst>::operator+(size_t d1)const
+{
+    Pool<T>::Iterator<IsConst> copy = *this;
+    for(size_t i=0;i<d1;++i)
+    {
+        copy.operator++();
+    }
+    return copy;
+
 }
 
 #endif // MEMORYPOOL_HPP

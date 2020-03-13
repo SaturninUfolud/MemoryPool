@@ -2,7 +2,52 @@
 
 #include "BST_Tree.hpp"
 #include "Tester.h"
+#include <string>
 
+class BST_Node
+{
+public:
+    //using NodePtr = Pool<BST_Node>::Iterator<false>;
+
+    BST_Node(const int&item)
+        :item(item)
+    {
+
+    }
+    BST_Node(int&&item)
+        :item(std::move(item))
+    {
+
+    }
+
+    int item;
+    Pool<BST_Node>::Iterator<false> lChild;
+    Pool<BST_Node>::Iterator<false> rChild;
+};
+
+
+inline void treeTest()
+{
+    /*Pool<int>p;
+    p.insert(0);
+    p.insert(12);
+    BST_Node node(0);*/
+
+    Pool<int>::Iterator<false> iter;
+    Pool<std::string>::Iterator<true> iter2;
+
+    std::cout<<"sizeof(iter) = "<<sizeof(iter)<<std::endl;
+    std::cout<<"sizeof(iter2) = "<<sizeof(iter2)<<std::endl;
+
+    std::cout<<(bool)iter<<std::endl;
+
+
+
+    //node.lChild = p.end();
+
+}
+
+/*
 inline void treeTest()
 {
     BST_Tree<Tester> tree;
@@ -30,8 +75,8 @@ inline void treeTest()
     tree.debugGraphical();
 
     std::cout<<"B4"<<std::endl;
-}
-
+}*/
+/*
 inline void treeTest2()
 {
     BST_Tree<double> tree1;
@@ -46,4 +91,4 @@ inline void treeTest2()
     }
 
     tree1.debugGraphical();
-}
+}*/
