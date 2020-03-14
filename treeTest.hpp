@@ -4,52 +4,32 @@
 #include "Tester.h"
 #include <string>
 
+#include "PoolIteratorProxy.hpp"
+
+/*
 class BST_Node
 {
 public:
-    //using NodePtr = Pool<BST_Node>::Iterator<false>;
-
-    BST_Node(const int&item)
-        :item(item)
-    {
-
-    }
-    BST_Node(int&&item)
-        :item(std::move(item))
-    {
-
-    }
-
     int item;
     Pool<BST_Node>::Iterator<false> lChild;
     Pool<BST_Node>::Iterator<false> rChild;
 };
 
+class BST_Node1
+{
+public:
+    int item;
+    PoolIteratorProxy<BST_Node,false> lChild;
+    PoolIteratorProxy<BST_Node,true>  rChild;
+};
+*/
+
+constexpr std::size_t _ITERATOR_SIZE = sizeof(Pool<void*>::Iterator<false>);
 
 inline void treeTest()
 {
-    /*Pool<int>p;
-    p.insert(0);
-    p.insert(12);
-    BST_Node node(0);*/
+    std::cout<<_ITERATOR_SIZE<<std::endl;
 
-    Pool<int>::Iterator<false> iter;
-    Pool<std::string>::Iterator<true> iter2;
-
-    std::cout<<"sizeof(iter) = "<<sizeof(iter)<<std::endl;
-    std::cout<<"sizeof(iter2) = "<<sizeof(iter2)<<std::endl;
-
-    std::cout<<(bool)iter<<std::endl;
-
-
-
-    //node.lChild = p.end();
-
-}
-
-/*
-inline void treeTest()
-{
     BST_Tree<Tester> tree;
 
     std::cout<<tree.empty()<<std::endl;
@@ -70,13 +50,30 @@ inline void treeTest()
     std::cout<<"B3"<<std::endl;
     tree.debugGraphical();
 
-    tree.toRightList();
+    /*tree.toRightList();
 
-    tree.debugGraphical();
+    tree.debugGraphical();*/
 
     std::cout<<"B4"<<std::endl;
-}*/
-/*
+    {
+        BST_Tree<Tester> tree1 = tree;
+
+        std::cout<<"B4a"<<std::endl;
+        tree1.debugGraphical();
+
+        std::cout<<"B4b"<<std::endl;
+
+
+        BST_Tree<Tester> tree2 = std::move(tree1);
+        std::cout<<"B4c"<<std::endl;
+
+        tree2.debugGraphical();
+
+    }
+
+    std::cout<<"B5"<<std::endl;
+}
+
 inline void treeTest2()
 {
     BST_Tree<double> tree1;
@@ -91,4 +88,14 @@ inline void treeTest2()
     }
 
     tree1.debugGraphical();
-}*/
+
+    const double*ptr = tree1.find(13);
+    if(ptr!=nullptr)
+    {
+        std::cout<<*ptr<<std::endl;
+    }
+    else
+    {
+        std::cout<<"nullptr"<<std::endl;
+    }
+}

@@ -9,9 +9,9 @@ SOURCES += \
 
 HEADERS += \
     BST_Tree.hpp \
-    BST_TreeOld.hpp \
     MemoryPool.hpp \
     MemoryPoolChunk.hpp \
+    PoolIteratorProxy.hpp \
     Set.hpp \
     Tester.h \
     chunkTest.hpp \

@@ -5,19 +5,20 @@
 //#include "chunkTest.hpp"
 //#include "poolTest.hpp"
 #include "treeTest.hpp"
-
+#include "setTest.hpp"
 
 int main()
 {
+
     std::cout<<"Hello world"<<std::endl;
     try
     {
         //chunkTest();
         //poolTest();
         //poolTest2();
-        treeTest();
+        //treeTest();
         //treeTest2();
-        //setTest();
+        setTest();
     }
     catch (const char*e)
     {

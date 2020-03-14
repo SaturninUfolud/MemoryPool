@@ -104,11 +104,10 @@ public:
         {
 
         }
-
         std::size_t vecIndex;
         ChunksVectorPtr mChunksPtr;
-
         ChunkIterator chunkIter;
+
 
         //typename PoolChunk<T>::Iterator chunkIter;
     };

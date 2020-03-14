@@ -1,6 +1,6 @@
 #ifndef SET_HPP
 #define SET_HPP
-#include "BST_TreeOld.hpp"
+#include "BST_Tree.hpp"
 
 template<typename T>
 class Set
@@ -40,10 +40,6 @@ public:
     }
     // usuwa element o podanej wartości - jeżeli element został usunięty to zwraca true, jeżeli elementu o podanej wartości nie udało się odnaleźć to zwraca false;
     bool remove(const T& value);
-    /*{
-        bst_.remove(value);
-    }*/
-
     void debug1()const
     {
         bst_.debug1();
