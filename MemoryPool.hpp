@@ -32,14 +32,15 @@ public:
     template<bool IsConst = false>
     class Iterator
     {
-        using reference = typename std::conditional< IsConst, T const &, T & >::type;
-        using pointer = typename std::conditional< IsConst, T const *, T * >::type;
         using ChunksVectorPtr = typename std::conditional
             < IsConst, const std::vector<PoolChunk<T>*>*, std::vector<PoolChunk<T>*>* >::type;
 
         using ChunkIterator = typename PoolChunk<T>::template Iterator<IsConst>;
 
     public:
+        using reference = typename std::conditional< IsConst, T const &, T & >::type;
+        using pointer = typename std::conditional< IsConst, T const *, T * >::type;
+
         Iterator()
             :vecIndex(0),mChunksPtr(nullptr),chunkIter(ChunkIterator())
         {

@@ -7,9 +7,9 @@
 #include "treeTest.hpp"
 #include "setTest.hpp"
 
+
 int main()
 {
-
     std::cout<<"Hello world"<<std::endl;
     try
     {

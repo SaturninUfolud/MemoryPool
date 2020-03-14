@@ -18,7 +18,7 @@ inline void setTest()
 {
     Set<int> s;
     {
-        std::cout<<"D1"<<std::endl;
+        //std::cout<<"D1"<<std::endl;
 
         s.insert(8);
         s.insert(4);
@@ -33,7 +33,7 @@ inline void setTest()
         s.insert(14);
         s.insert(7);
 
-        std::cout<<"D2"<<std::endl;
+        //std::cout<<"D2"<<std::endl;
 
         if(auto f = s.find(5)) std::cout << "Found: " << *f << std::endl;
         s.remove(4);
@@ -47,7 +47,7 @@ inline void setTest()
         std::vector<Set<int>> vs, vs2;
         vs.resize(1000);
 
-        std::cout<<"D3"<<std::endl;
+        //std::cout<<"D3"<<std::endl;
 
         for(auto& e : vs)
         {
@@ -61,17 +61,17 @@ inline void setTest()
         vs2.clear();
 
 
-        std::cout<<"D4"<<std::endl;
+        //std::cout<<"D4"<<std::endl;
 
         const auto s2 = std::move(vs.front());
-        std::cout<<"D5"<<std::endl;
+        //std::cout<<"D5"<<std::endl;
 
         if(auto f = s2.find(5)) std::cout << "Found: " << *f << std::endl;
         auto s3 = s2;
         printSetSizeAndElems(s3);
         s = s3;
 
-        std::cout<<"D6"<<std::endl;  //*/
+        //std::cout<<"D6"<<std::endl;  //*/
     }
     printSetSizeAndElems(s);
 

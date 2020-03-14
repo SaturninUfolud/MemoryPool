@@ -20,7 +20,6 @@ public:
     BST_Tree(const BST_Tree&source);
     BST_Tree(BST_Tree&&source);
 
-    /*~BST_Tree();*/
     BST_Tree& operator=(const BST_Tree&source);
     BST_Tree& operator=(BST_Tree&&source);
 
@@ -28,8 +27,7 @@ public:
     {
 
     public:
-        using NodePtr = typename Pool<typename BST_Tree::Node>::template Iterator<false>;
-
+        using NodePtr = typename PoolIteratorProxy<Node, false>::PoolPtr;
         Node(const T&item)
             :item(item)
         {
@@ -43,17 +41,12 @@ public:
         NodePtr& left()
         {
             return lChild;
-            //return *reinterpret_cast<NodePtr*>(lChild);
         }
         NodePtr& right()
         {
             return rChild;
-            //return *reinterpret_cast<NodePtr*>(rChild);
         }
     private:
-        /*char lChild[_POOL_ITERATOR_SIZE];
-        char rChild[_POOL_ITERATOR_SIZE];*/
-
         PoolIteratorProxy<Node, false> lChild;
         PoolIteratorProxy<Node, false> rChild;
     };

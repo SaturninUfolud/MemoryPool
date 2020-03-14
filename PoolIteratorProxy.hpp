@@ -10,6 +10,7 @@ class PoolIteratorProxy
 {
 public:
     using PoolPtr = typename Pool<T>::template Iterator<IsConst>;
+
     PoolIteratorProxy()
     {
         new(buffer)PoolPtr();
