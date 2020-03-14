@@ -50,7 +50,7 @@ inline void treeTest()
     std::cout<<"B3"<<std::endl;
     tree.debugGraphical();
 
-    /*tree.toRightList();
+    /*tree.toRightVine();
 
     tree.debugGraphical();*/
 
@@ -76,10 +76,14 @@ inline void treeTest()
 
 inline void treeTest2()
 {
+    std::cout<<"T0"<<std::endl;
+
     BST_Tree<double> tree1;
 
     double da1[15] = {-1,5,3,0,4,7,8,13,-12,7.1,1,11,2,17,7.2};
     double sum = 0;
+
+
 
     for(size_t i =0 ;i<15;++i)
     {
@@ -87,7 +91,11 @@ inline void treeTest2()
         sum+=da1[i];
     }
 
+    std::cout<<"T1"<<std::endl;
+
     tree1.debugGraphical();
+
+    std::cout<<"T2"<<std::endl;
 
     const double*ptr = tree1.find(13);
     if(ptr!=nullptr)
@@ -98,4 +106,13 @@ inline void treeTest2()
     {
         std::cout<<"nullptr"<<std::endl;
     }
+
+    std::cout<<"T3"<<std::endl;
+
+    tree1.dsw();
+
+    std::cout<<"T4"<<std::endl;
+    tree1.debugGraphical();
+
+    std::cout<<"T5"<<std::endl;
 }

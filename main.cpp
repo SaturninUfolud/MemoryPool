@@ -17,8 +17,8 @@ int main()
         //poolTest();
         //poolTest2();
         //treeTest();
-        //treeTest2();
-        setTest();
+        treeTest2();
+        //setTest();
     }
     catch (const char*e)
     {

@@ -80,9 +80,14 @@ public:
 
     void remove(const T&item);
 
-    //TODO********
-    void toRightList();
+    /**
+     * DSW algorithm
+     * https://en.wikipedia.org/wiki/Day%E2%80%93Stout%E2%80%93Warren_algorithm
+     */
     void dsw();
+    void toRightVine();
+
+
     //**********
 
     void debug1()const;
@@ -106,10 +111,8 @@ private:
 
     static void printBT(const std::string& prefix, const NodePtr& node, bool isLeft);
 
-    void mCompress(NodePtr& node,int n);
-
+    void mCompress(NodePtr& root,int n);
     static void mRotateLeftHelper(NodePtr& nodeX);
-    static void mRotateRightHelper(NodePtr& nodeX);
 };
 
 
@@ -258,127 +261,6 @@ void BST_Tree<T>::debug1()const
     std::cout<<std::endl;
 }
 
-inline int log2func(int n)
-{
-    int r=0;
-    while (n>=2)
-    {
-        n/=2;
-        r++;
-    }
-    return 1<<r;
-}
-
-template<typename T>
-void BST_Tree<T>::toRightList()
-{
-    if(empty())return;
-
-    while(root->left())
-    {
-        mRotateLeftHelper(root);
-    }
-
-
-    NodePtr parent = this->root;
-    for(NodePtr n1 = root->right(); n1; n1=n1->right())
-    {
-        while(n1->left())
-        {
-            //n1 = mRotateRightHelper(n1);//mRotateRight(n1);
-            mRotateLeftHelper(n1);
-        }
-        parent->right() = n1;
-        parent = n1;
-    }
-}
-
-template<typename T>
-void BST_Tree<T>::dsw()
-{
-    if(empty())return;
-    this->toRightList();
-
-    int size = 0;
-
-    std::cout<<"DSW A4"<<std::endl;
-
-    for(NodePtr node = root; node; node=node->right())
-    {
-        size++;
-    }
-
-    std::cout<<"DSW A5"<<std::endl;
-
-    int leaves = size + 1 - log2func(size+1);
-    mCompress(root,leaves);
-    size = size -1;
-    while(size > 1)
-    {
-        size = size/2;
-        mCompress(root,size);
-    }
-
-    std::cout<<"DSW A6"<<std::endl;//*/
-}
-
-template<typename T>
-void BST_Tree<T>::mCompress(NodePtr& node,int n)
-{
-    NodePtr scanner = node;
-    for(int i=0;i<n;++i)
-    {
-        NodePtr child = scanner->right();
-
-        scanner->right() = child->right();
-
-        scanner = scanner->right();
-        child->right() = scanner->left();
-        scanner->left() = child;
-    }
-}
-
-template <typename T>
-void BST_Tree<T>::mRotateLeftHelper(NodePtr& nodeX)
-{
-
-    if(nodeX && nodeX->left())
-    {
-        NodePtr nodeY = nodeX;
-
-        nodeY = nodeX->left();
-        nodeX->left() = nodeY->right();
-        nodeY->right() = nodeX;
-
-        nodeX = nodeY;
-    }
-    //return nodeY;
-}
-
-template <typename T>
-void BST_Tree<T>::mRotateRightHelper(NodePtr& nodeX)
-{
-    //std::cout<<"R-R1"<<std::endl;
-
-    if(nodeX && nodeX->right())
-    {
-        NodePtr nodeY = nodeX;
-        std::cout<<"R-R1.1"<<std::endl;
-
-        nodeY = nodeX->right();
-        nodeX->right() = nodeY->left();
-        nodeY->left() = nodeX;
-
-        std::cout<<"R-R1.2"<<std::endl;
-        nodeX = nodeY;
-    }
-    else
-    {
-        std::cout<<"Kurwa"<<std::endl;
-    }
-    //std::cout<<"R-R2"<<std::endl;
-    //return nodeY;
-}
 
 template<typename T>
 T* BST_Tree<T>::mInsert(NodePtr newNode)
@@ -484,7 +366,9 @@ typename BST_Tree<T>::NodePtr BST_Tree<T>::mRemove(NodePtr node)
 
     return newRoot;
 }
-
+/**
+ *https://stackoverflow.com/questions/4965335/how-to-print-binary-tree-diagram
+ */
 
 template<typename T>
 void BST_Tree<T>::printBT(const std::string& prefix, const NodePtr& node, bool isLeft)
@@ -504,6 +388,97 @@ void BST_Tree<T>::printBT(const std::string& prefix, const NodePtr& node, bool i
     }
 }
 
+/**
+ * DSW algorithm
+ * https://en.wikipedia.org/wiki/Day%E2%80%93Stout%E2%80%93Warren_algorithm
+ */
 
+inline int _log2func(int n)
+{
+    int r=0;
+    while (n>=2)
+    {
+        n/=2;
+        r++;
+    }
+    return 1<<r;
+}
+
+template<typename T>
+void BST_Tree<T>::toRightVine()
+{
+    if(empty())return;
+
+    while(root->left())
+    {
+        mRotateLeftHelper(root);
+    }
+
+
+    NodePtr parent = this->root;
+    for(NodePtr n1 = root->right(); n1; n1=n1->right())
+    {
+        while(n1->left())
+        {
+            mRotateLeftHelper(n1);
+        }
+        parent->right() = n1;
+        parent = n1;
+    }
+}
+
+template<typename T>
+void BST_Tree<T>::dsw()
+{
+    if(empty())return;
+    this->toRightVine();
+
+    int size = 0;
+
+    for(NodePtr node = root; node; node=node->right())
+    {
+        size++;
+    }
+
+    int leaves = size + 1 - _log2func(size+1);
+    mCompress(root,leaves);
+    size = size -1;
+    while(size > 1)
+    {
+        size = size/2;
+        mCompress(root,size);
+    }
+}
+
+template<typename T>
+void BST_Tree<T>::mCompress(NodePtr& root,int n)
+{
+    NodePtr scanner = root;
+    for(int i=0;i<n;++i)
+    {
+        NodePtr child = scanner->right();
+
+        scanner->right() = child->right();
+
+        scanner = scanner->right();
+        child->right() = scanner->left();
+        scanner->left() = child;
+    }
+}
+
+template <typename T>
+void BST_Tree<T>::mRotateLeftHelper(NodePtr& nodeX)
+{
+    if(nodeX && nodeX->left())
+    {
+        NodePtr nodeY = nodeX;
+
+        nodeY = nodeX->left();
+        nodeX->left() = nodeY->right();
+        nodeY->right() = nodeX;
+
+        nodeX = nodeY;
+    }
+}
 
 #endif // BST_TREE_HPP
