@@ -74,7 +74,8 @@ public:
 
         bool operator==(const Iterator&it2)const
         {
-            return this->chunkIter==it2;
+            return this->chunkIter==it2.chunkIter;
+            //return this->chunkIter==it2;
         }
         bool operator!=(const Iterator&it2)const
         {

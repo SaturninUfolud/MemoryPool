@@ -72,6 +72,19 @@ inline void treeTest()
     }
 
     std::cout<<"B5"<<std::endl;
+
+    for(auto it = tree.begin();it != tree.end();++it)
+    {
+        std::cout<<*it<<", ";
+    }
+
+    for(const Tester&t : tree)
+    {
+        std::cout<<t<<std::endl;
+    }
+
+    std::cout<<std::endl;
+    std::cout<<"B6"<<std::endl;
 }
 
 inline void treeTest2()
@@ -84,12 +97,19 @@ inline void treeTest2()
     double sum = 0;
 
 
-
     for(size_t i =0 ;i<15;++i)
     {
         tree1.insert(da1[i]);
         sum+=da1[i];
     }
+
+
+    for(auto it = tree1.begin();it != tree1.end();++it)
+    {
+        std::cout<<it<<", ";
+    }
+
+    std::cout<<std::endl;
 
     std::cout<<"T1"<<std::endl;
 

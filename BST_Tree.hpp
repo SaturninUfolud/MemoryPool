@@ -6,7 +6,6 @@
 #include <type_traits>
 
 //constexpr std::size_t _POOL_ITERATOR_SIZE = sizeof (Pool<void*>::Iterator<false>);
-
 template<typename T>
 class BST_Tree
 {
@@ -27,7 +26,9 @@ public:
     {
 
     public:
-        using NodePtr = typename PoolIteratorProxy<Node, false>::PoolPtr;
+        //using NodePtr = typename PoolIteratorProxy<Node, false>::PoolPtr;
+        using NodePtr = typename Pool<typename BST_Tree<T>::Node>::template Iterator<false>;
+
         Node(const T&item)
             :item(item)
         {
@@ -65,17 +66,7 @@ public:
     const T&findMax()const;
     const T&findMin()const;
 
-    T* insert(const T&item)
-    {
-        return mInsert(mNodePool.insert(item));
-    }
 
-    T* insert(T&&item)
-    {
-        return mInsert(mNodePool.insert(std::move(item)));
-    }
-
-    const T* find(const T&item)const;
 
 
     void remove(const T&item);
@@ -101,9 +92,110 @@ public:
         return this->mNodePool.size();
     }
 
+    template<bool IsConst>
+    class Iterator
+    {
+
+    public:
+        using PoolIter = typename Pool<typename BST_Tree<T>::Node>::template Iterator<IsConst>;
+
+        using reference = typename std::conditional< IsConst, T const &, T & >::type;
+        using pointer = typename std::conditional< IsConst, T const *, T * >::type;
+
+        Iterator(const PoolIter& poolIter)
+            :poolIter(poolIter)
+        {
+
+        }
+
+        reference operator*()const
+        {
+            //reference r = poolIter->item;
+            return poolIter->item;
+        }
+        pointer operator->()const
+        {
+            return &(this->operator*());
+        }
+
+        bool operator==(const Iterator&it2)const
+        {
+            return this->poolIter==it2.poolIter;
+        }
+
+        bool operator!=(const Iterator&it2)const
+        {
+            return this->poolIter!=it2.poolIter;
+        }
+
+        operator bool()const
+        {
+            return (bool)poolIter;
+        }
+
+        Iterator& operator++()
+        {
+            ++poolIter;
+            return *this;
+        }
+
+        Iterator operator++(int)
+        {
+            Iterator copy = *this;
+            ++poolIter;
+            return copy;
+        }
+
+    private:
+        PoolIter poolIter;
+    };
+
+    Iterator<false> begin()
+    {
+        return Iterator<false>(this->mNodePool.begin());
+    }
+
+    Iterator<false> end()
+    {
+        return Iterator<false>(this->mNodePool.end());
+    }
+
+    Iterator<true> cbegin()const
+    {
+        return Iterator<true>(this->mNodePool.cbegin());
+    }
+
+    Iterator<true> cend()const
+    {
+        return Iterator<true>(this->mNodePool.cend());
+    }
+
+    Iterator<true> begin()const
+    {
+        return this->cbegin();
+    }
+
+    Iterator<true> end()const
+    {
+        return this->cend();
+    }
+
+
+    Iterator<false> insert(const T&item)
+    {
+        return mInsert(mNodePool.insert(item));
+    }
+
+    Iterator<false> insert(T&&item)
+    {
+        return mInsert(mNodePool.insert(std::move(item)));
+    }
+
+    Iterator<false> find(const T&item);
+
 private:
     NodePtr root;
-    T* mInsert(NodePtr ptr);
+    Iterator<false> mInsert(NodePtr ptr);
     NodePtr mRemove(NodePtr node);
     NodePtr mCopyTreeRecursive(const NodePtr& oldRoot);
 
@@ -234,6 +326,8 @@ void BST_Tree<T>::remove(const T&item)
                 parent->right() = this->mRemove(node);
             }
 
+            this->mNodePool.remove(node);
+
             break;
         }
 
@@ -241,14 +335,13 @@ void BST_Tree<T>::remove(const T&item)
 
         if(item<node->item)
         {
-            node = node->right();
+            node = node->left();
         }
         else
         {
-            node = node->left();
+            node = node->right();
         }
     }
-
 }
 
 template<typename T>
@@ -263,7 +356,7 @@ void BST_Tree<T>::debug1()const
 
 
 template<typename T>
-T* BST_Tree<T>::mInsert(NodePtr newNode)
+typename BST_Tree<T>::template Iterator<false> BST_Tree<T>::mInsert(NodePtr newNode)
 {
     //std::cout<<"mInsert begin"<<std::endl;
     if(empty())
@@ -305,11 +398,13 @@ T* BST_Tree<T>::mInsert(NodePtr newNode)
     }
 
     //std::cout<<"mInsert end"<<std::endl;
-    return &newNode->item;
+    //return &newNode->item;
+
+    return newNode;
 }
 
 template<typename T>
-const T* BST_Tree<T>::find(const T&item)const
+typename BST_Tree<T>::template Iterator<false> BST_Tree<T>::find(const T&item)
 {
     NodePtr node =root;
 
@@ -317,7 +412,7 @@ const T* BST_Tree<T>::find(const T&item)const
     {
         if(item==node->item)
         {
-            return &node->item;
+            return node;//&node->item;
         }
         else if(item<node->item)
         {
@@ -329,7 +424,8 @@ const T* BST_Tree<T>::find(const T&item)const
         }
     }
 
-    return nullptr;
+    return this->end();
+    //return nullptr;
 }
 
 template<typename T>
@@ -361,8 +457,6 @@ typename BST_Tree<T>::NodePtr BST_Tree<T>::mRemove(NodePtr node)
 
         n1->right() = node->right();
     }
-
-    this->mNodePool.remove(node);
 
     return newRoot;
 }
