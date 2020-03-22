@@ -148,7 +148,7 @@ public:
     Iterator<false> insert(const T& item);
     Iterator<false> insert(T&& item);
 
-    void remove(Iterator<false>& iter);
+    void remove(const Iterator<true>& iter);
 
     Iterator<true> cbegin()const;
     Iterator<true> cend()const
@@ -301,7 +301,7 @@ void PoolChunk<T>::debug()const
 }
 
 template<typename T>
-void PoolChunk<T>::remove(Iterator<false>&iter)
+void PoolChunk<T>::remove(const Iterator<true>&iter)
 {
     size_t index = iter.index;
 

@@ -2,7 +2,11 @@
 #include <bitset>
 #include "MemoryPool.hpp"
 #include "Tester.h"
-#include "setTest.hpp"
+
+//#include "poolTest.hpp"
+#include "treeTest.hpp"
+
+//#include "setTest.hpp"
 int main()
 {
     std::cout<<"Hello world"<<std::endl;
@@ -12,9 +16,9 @@ int main()
         //poolTest();
         //poolTest2();
         //treeTest();
-        //treeTest2();
+        treeTest2();
         //setTest();
-        setTestIter();
+        //setTestIter();
     }
     catch (const char*e)
     {

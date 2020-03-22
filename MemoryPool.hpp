@@ -147,7 +147,8 @@ public:
     Iterator<false> insert(const T&item);
     Iterator<false> insert(T&&item);
 
-    void remove(Iterator<false>& iter);    
+    template<bool IsConst>
+    void remove(Iterator<IsConst>& iter);
 
     std::size_t size()const
     {
@@ -275,7 +276,8 @@ typename Pool<T>::template Iterator<false> Pool<T>::insert(T&&item)
 
 
 template<typename T>
-void Pool<T>::remove(Iterator<false>&iter)
+template<bool IsConst>
+void Pool<T>::remove(Iterator<IsConst>&iter)
 {
     if(empty())throw "[Pool] The pool is empty!";
 
@@ -291,7 +293,6 @@ void Pool<T>::remove(Iterator<false>&iter)
     iter.setNull();
 
 
-#ifdef _REMOVE_EMPTY_CHUNKS
     if(chunk->empty())
     {
         delete chunk;
@@ -303,7 +304,6 @@ void Pool<T>::remove(Iterator<false>&iter)
         }
         this->mChunks.resize(s1);
     }
-#endif
 }
 
 template<typename T>

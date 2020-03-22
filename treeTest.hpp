@@ -117,8 +117,8 @@ inline void treeTest2()
 
     std::cout<<"T2"<<std::endl;
 
-    const double*ptr = tree1.find(13);
-    if(ptr!=nullptr)
+    auto ptr = tree1.find(13);
+    if(ptr)
     {
         std::cout<<*ptr<<std::endl;
     }

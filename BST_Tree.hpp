@@ -58,7 +58,7 @@ public:
         return !(bool)root;
     }
 
-    T&top()
+    const T&top()
     {
         return root->item;
     }
