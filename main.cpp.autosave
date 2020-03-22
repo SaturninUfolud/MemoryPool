@@ -27,7 +27,7 @@ int main()
     }
     catch(...)
     {
-        std::cout<<"Dupa blada"<<std::endl;
+        std::cout<<"Unknown exception"<<std::endl;
     }
 
     std::cout<<"\n#######\nPowinno być 0, a jest: "<<Tester::getCounter()<<std::endl;

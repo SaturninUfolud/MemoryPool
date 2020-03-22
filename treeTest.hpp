@@ -39,7 +39,7 @@ inline void treeTest()
     Tester t2;
 
     tree.insert(t2);
-
+    std::cout<<"B1a"<<std::endl;
     for(int i=0;i<5;++i)
     {
         tree.insert(Tester());
