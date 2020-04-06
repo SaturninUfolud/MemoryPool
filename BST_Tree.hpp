@@ -93,17 +93,12 @@ public:
 
     class Iterator
     {
-
-    public:
+    private:
         using PoolIter = typename Pool<typename BST_Tree<T>::Node>::template Iterator<true>;
 
         using reference = T const &;
         using pointer = T const *;
-        Iterator(const PoolIter& poolIter)
-            :poolIter(poolIter)
-        {
-
-        }
+        friend class BST_Tree;
 
         Iterator(const NodePtr& npt)
             :poolIter(npt)
@@ -111,6 +106,12 @@ public:
 
         }
 
+    public:        
+        Iterator(const PoolIter& poolIter)
+            :poolIter(poolIter)
+        {
+
+        }
         reference operator*()const
         {
             //reference r = poolIter->item;
@@ -174,6 +175,17 @@ public:
     }
 
     Iterator find(const T&item)const;
+
+    void clear()
+    {
+        root.setNull();
+        this->mNodePool.clear();
+    }
+
+    void remove(Iterator iter)
+    {
+        remove(*iter);
+    }
 
 private:
     NodePtr root;

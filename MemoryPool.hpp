@@ -332,6 +332,11 @@ typename Pool<T>::template Iterator<IsConst>& Pool<T>::Iterator<IsConst>::operat
     ++this->chunkIter;
     if(!this->chunkIter)
     {
+        if(this->mChunksPtr==nullptr)
+        {
+            return *this;
+        }
+
         ++vecIndex;
         if(vecIndex<this->mChunksPtr->size())
         {

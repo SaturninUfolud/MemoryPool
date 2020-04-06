@@ -9,12 +9,14 @@ SOURCES += \
 
 HEADERS += \
     BST_Tree.hpp \
+    Map.hpp \
     MemoryPool.hpp \
     MemoryPoolChunk.hpp \
     PoolIteratorProxy.hpp \
     Set.hpp \
     Tester.h \
     chunkTest.hpp \
+    mapTest.hpp \
     poolTest.hpp \
     setTest.hpp \
     treeTest.hpp
