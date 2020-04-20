@@ -234,7 +234,8 @@ public:
     // wyszukuje element o podanym kluczu - jeżeli element został znaleziony to zwraca referencję do znalezionej wartości, jeżeli nie to dodaje nowy element o podanym kluczu i domyślnej wartości V() i zwraca referencję do wartości
     V& operator[](const K &key);
     // usuwa element o podanej wartości - jeżeli element został usunięty to zwraca "Iterator" na kolejny element, jeżeli elementu o podanej wartości nie udało się odnaleźć to zwraca to samo co "end()"
-    Iterator remove(const K &key);
+    //Iterator remove(const K &key);
+    bool remove(const K & key);
     // usuwa wszystkie elementy
     void clear()
     {
@@ -297,6 +298,19 @@ const V& Map<K,V>::operator[](const K &key)const
 }
 
 template <typename K, typename V>
+bool Map<K,V>::remove(const K &key)
+{
+    auto iter = this->mTree.find(key);
+    if(iter)
+    {
+        this->mTree.remove(iter);
+        return true;
+    }
+    return false;
+}
+
+/*
+template <typename K, typename V>
 typename Map<K,V>::Iterator Map<K,V>::remove(const K &key)
 {
     auto iter = this->mTree.find(key);
@@ -307,6 +321,6 @@ typename Map<K,V>::Iterator Map<K,V>::remove(const K &key)
         this->mTree.remove(iter);
     }
     return iterCopy;
-}
+}*/
 
 #endif // MAP_H
