@@ -4,10 +4,9 @@
 #include "Tester.h"
 
 //#include "poolTest.hpp"
-//#include "treeTest.hpp"
+#include "treeTest.hpp"
 //#include "setTest.hpp"
-#include "mapTest.hpp"
-
+//#include "mapTest.hpp"
 
 int main()
 {
@@ -18,10 +17,10 @@ int main()
         //poolTest();
         //poolTest2();
         //treeTest();
-        //treeTest2();
+        treeTest2();
         //setTest();
         //setTestIter();
-        mapTest();
+        //mapTest();
     }
     catch (const char*e)
     {

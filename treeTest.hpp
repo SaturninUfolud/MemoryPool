@@ -106,7 +106,7 @@ inline void treeTest2()
 
     for(auto it = tree1.begin();it != tree1.end();++it)
     {
-        std::cout<<it<<", ";
+        std::cout<<*it<<", ";
     }
 
     std::cout<<std::endl;
@@ -114,6 +114,11 @@ inline void treeTest2()
     std::cout<<"T1"<<std::endl;
 
     tree1.debugGraphical();
+
+
+    std::cout<<"T1.1"<<std::endl;
+
+    tree1.inorder([](const double& d){std::cout<<d<<std::endl;});
 
     std::cout<<"T2"<<std::endl;
 

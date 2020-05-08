@@ -4,7 +4,8 @@
 #include "MemoryPool.hpp"
 #include "PoolIteratorProxy.hpp"
 #include <type_traits>
-
+#include <functional>
+#include <queue>
 //constexpr std::size_t _POOL_ITERATOR_SIZE = sizeof (Pool<void*>::Iterator<false>);
 template<typename T>
 class BST_Tree
@@ -57,7 +58,7 @@ public:
 
     const T&top()
     {
-        return root->item;
+        return mRoot->item;
     }
 
     const T&findMax()const;
@@ -78,7 +79,7 @@ public:
     void debug1()const;
     void debugGraphical()const
     {
-        printBT("",this->root,false);
+        printBT("",this->mRoot,false);
     }
 
     std::size_t size()const
@@ -88,7 +89,7 @@ public:
 
     bool empty()const
     {
-        return !(bool)this->root;//this->mNodePool.empty();
+        return !(bool)this->mRoot;//this->mNodePool.empty();
     }
 
     class Iterator
@@ -178,7 +179,7 @@ public:
 
     void clear()
     {
-        root.setNull();
+        mRoot.setNull();
         this->mNodePool.clear();
     }
 
@@ -187,18 +188,24 @@ public:
         remove(*iter);
     }
 
+    void inorder(const std::function<void(const T& item)>& func)const
+    {
+        mInorderRecursive(func,this->mRoot);
+    }
 private:
-    NodePtr root;
+    NodePtr mRoot;
     Iterator mInsert(NodePtr ptr);
     NodePtr mRemove(NodePtr node);
-    NodePtr mCopyTreeRecursive(const NodePtr& oldRoot);
+    NodePtr mCopyTreeRecursive(const NodePtr& oldmRoot);
 
     Pool<typename BST_Tree<T>::Node> mNodePool;
 
     static void printBT(const std::string& prefix, const NodePtr& node, bool isLeft);
 
-    void mCompress(NodePtr& root,int n);
+    void mCompress(NodePtr& mRoot,int n);
     static void mRotateLeftHelper(NodePtr& nodeX);
+
+    static void mInorderRecursive(const std::function<void(const T& item)>& func,const NodePtr& ptr);
 };
 
 
@@ -206,15 +213,15 @@ template<typename T>
 BST_Tree<T>::BST_Tree(const BST_Tree&source)
     :mNodePool(source.mNodePool)
 {
-    this->root = mCopyTreeRecursive(source.root);
+    this->mRoot = mCopyTreeRecursive(source.mRoot);
 }
 
 template<typename T>
 BST_Tree<T>::BST_Tree(BST_Tree&&source)
     :mNodePool(std::move(source.mNodePool))
 {
-    this->root = mCopyTreeRecursive(source.root);
-    source.root.setNull();
+    this->mRoot = mCopyTreeRecursive(source.mRoot);
+    source.mRoot.setNull();
 }
 
 template <typename T>
@@ -223,7 +230,7 @@ BST_Tree<T>& BST_Tree<T>::operator=(const BST_Tree&source)
     if(this!=&source)
     {
         this->mNodePool = source.mNodePool;
-        this->root = mCopyTreeRecursive(source.root);
+        this->mRoot = mCopyTreeRecursive(source.mRoot);
     }
     return *this;
 }
@@ -234,47 +241,47 @@ BST_Tree<T>& BST_Tree<T>::operator=(BST_Tree&&source)
     if(this!=&source)
     {
         this->mNodePool = std::move(source.mNodePool);
-        this->root = mCopyTreeRecursive(source.root);
-        source.root.setNull();
+        this->mRoot = mCopyTreeRecursive(source.mRoot);
+        source.mRoot.setNull();
     }
     return *this;
 }
 
 
 template<typename T>
-typename BST_Tree<T>::NodePtr BST_Tree<T>::mCopyTreeRecursive(const NodePtr& oldRoot)
+typename BST_Tree<T>::NodePtr BST_Tree<T>::mCopyTreeRecursive(const NodePtr& oldmRoot)
 {
 
-    NodePtr newRoot;
-    if(oldRoot)
+    NodePtr newmRoot;
+    if(oldmRoot)
     {
         //std::cout<<"F1-in"<<std::endl;
 
-        newRoot = this->mNodePool.copyIterator(oldRoot);
+        newmRoot = this->mNodePool.copyIterator(oldmRoot);
 
         //std::cout<<"F1-in-end"<<std::endl;
 
-        if(newRoot->left())
+        if(newmRoot->left())
         {
-            newRoot->left() = mCopyTreeRecursive(oldRoot->left());
+            newmRoot->left() = mCopyTreeRecursive(oldmRoot->left());
         }
 
-        if(newRoot->right())
+        if(newmRoot->right())
         {
-            newRoot->right() = mCopyTreeRecursive(oldRoot->right());
+            newmRoot->right() = mCopyTreeRecursive(oldmRoot->right());
         }
 
 
 
     }
-    return newRoot;
+    return newmRoot;
 }
 
 template<typename T>
 const T& BST_Tree<T>::findMax()const
 {
-    if(!root)throw "Empty tree";
-    NodePtr node = root;
+    if(!mRoot)throw "Empty tree";
+    NodePtr node = mRoot;
     while(node->left())
     {
         node = node->left();
@@ -286,8 +293,8 @@ const T& BST_Tree<T>::findMax()const
 template<typename T>
 const T& BST_Tree<T>::findMin()const
 {
-    if(!root)throw "Empty tree";
-    NodePtr node = root;
+    if(!mRoot)throw "Empty tree";
+    NodePtr node = mRoot;
     while(node->right())
     {
         node = node->right();
@@ -301,15 +308,15 @@ template<typename T>
 void BST_Tree<T>::remove(const T&item)
 {
     NodePtr parent;
-    NodePtr node = this->root;
+    NodePtr node = this->mRoot;
 
     while(node)
     {
         if(node->item==item)
         {
-            if(node == this->root)
+            if(node == this->mRoot)
             {
-                this->root = this->mRemove(node);
+                this->mRoot = this->mRemove(node);
             }
             else if(node == parent->left())
             {
@@ -356,12 +363,12 @@ typename BST_Tree<T>::Iterator BST_Tree<T>::mInsert(NodePtr newNode)
     if(empty())
     {
         //std::cout<<"mInsert empty"<<std::endl;
-        this->root=newNode;
+        this->mRoot=newNode;
     }
     else
     {
         //std::cout<<"mInsert not empty"<<std::endl;
-        NodePtr iter = root;
+        NodePtr iter = mRoot;
         while(true)
         {            
             if(newNode->item>iter->item)
@@ -400,7 +407,7 @@ typename BST_Tree<T>::Iterator BST_Tree<T>::mInsert(NodePtr newNode)
 template<typename T>
 typename BST_Tree<T>::Iterator BST_Tree<T>::find(const T&item)const
 {
-    NodePtr node =root;
+    NodePtr node =mRoot;
 
     while(node)
     {
@@ -427,20 +434,20 @@ typename BST_Tree<T>::NodePtr BST_Tree<T>::mRemove(NodePtr node)
 {
     if(!node)return node;
 
-    NodePtr newRoot;
-    //Node * newRoot = nullptr;
+    NodePtr newmRoot;
+    //Node * newmRoot = nullptr;
 
     if(!node->left())
     {
-        newRoot = node->right();
+        newmRoot = node->right();
     }
     else if(!node->right())
     {
-        newRoot = node->left();
+        newmRoot = node->left();
     }
     else
     {
-        newRoot = node->left();
+        newmRoot = node->left();
 
         NodePtr n1 = node->left();
 
@@ -452,7 +459,7 @@ typename BST_Tree<T>::NodePtr BST_Tree<T>::mRemove(NodePtr node)
         n1->right() = node->right();
     }
 
-    return newRoot;
+    return newmRoot;
 }
 /**
  *https://stackoverflow.com/questions/4965335/how-to-print-binary-tree-diagram
@@ -497,14 +504,14 @@ void BST_Tree<T>::toRightVine()
 {
     if(empty())return;
 
-    while(root->left())
+    while(mRoot->left())
     {
-        mRotateLeftHelper(root);
+        mRotateLeftHelper(mRoot);
     }
 
 
-    NodePtr parent = this->root;
-    for(NodePtr n1 = root->right(); n1; n1=n1->right())
+    NodePtr parent = this->mRoot;
+    for(NodePtr n1 = mRoot->right(); n1; n1=n1->right())
     {
         while(n1->left())
         {
@@ -523,25 +530,25 @@ void BST_Tree<T>::dsw()
 
     int size = 0;
 
-    for(NodePtr node = root; node; node=node->right())
+    for(NodePtr node = mRoot; node; node=node->right())
     {
         size++;
     }
 
     int leaves = size + 1 - _log2func(size+1);
-    mCompress(root,leaves);
+    mCompress(mRoot,leaves);
     size = size -1;
     while(size > 1)
     {
         size = size/2;
-        mCompress(root,size);
+        mCompress(mRoot,size);
     }
 }
 
 template<typename T>
-void BST_Tree<T>::mCompress(NodePtr& root,int n)
+void BST_Tree<T>::mCompress(NodePtr& mRoot,int n)
 {
-    NodePtr scanner = root;
+    NodePtr scanner = mRoot;
     for(int i=0;i<n;++i)
     {
         NodePtr child = scanner->right();
@@ -566,6 +573,17 @@ void BST_Tree<T>::mRotateLeftHelper(NodePtr& nodeX)
         nodeY->right() = nodeX;
 
         nodeX = nodeY;
+    }
+}
+
+template <typename T>
+void BST_Tree<T>::mInorderRecursive(const std::function<void(const T&item)>& func, const NodePtr&ptr)
+{
+    if(ptr)
+    {
+        if(ptr->left())mInorderRecursive(func,ptr->left());
+        func(ptr->item);
+        if(ptr->right())mInorderRecursive(func,ptr->right());
     }
 }
 
